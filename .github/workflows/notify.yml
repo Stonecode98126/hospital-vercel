@@ -1,0 +1,30 @@
+name: 看診提醒排程
+
+on:
+  schedule:
+    # 每5分鐘執行一次（UTC時間，台灣時間 = UTC+8）
+    - cron: '*/5 * * * *'
+  # 也可以手動觸發，方便測試
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: 呼叫看診提醒 API
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.VERCEL_URL }}/api/notify")
+          
+          echo "API 回應狀態碼：$response"
+          
+          if [ "$response" != "200" ]; then
+            echo "❌ API 呼叫失敗，狀態碼：$response"
+            exit 1
+          fi
+          
+          echo "✅ 看診提醒檢查完成"
