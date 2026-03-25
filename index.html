@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>804桃園國軍總醫院 看診提醒</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#00c6ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="看診提醒">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg: #08111f;
+  --card: #0e1e33;
+  --card2: #152540;
+  --border: #1a3050;
+  --accent: #00c6ff;
+  --green: #00e676;
+  --yellow: #ffd740;
+  --red: #ff5252;
+  --text: #e4f0f8;
+  --dim: #5a7a95;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100dvh; overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 10%, rgba(0,198,255,.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 85% 90%, rgba(124,90,245,.05) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 500px; margin: 0 auto; padding: 20px 16px 80px; }
+
+/* header */
+.hdr { text-align: center; padding: 20px 0 24px; }
+.hdr-icon { font-size: 40px; display: block; margin-bottom: 8px; }
+.hdr h1 {
+  font-size: 20px; font-weight: 900; letter-spacing: .06em;
+  background: linear-gradient(120deg, var(--accent), #7c5af5);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hdr p { font-size: 12px; color: var(--dim); margin-top: 4px; }
+
+/* step indicator */
+.steps { display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+.step { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; position: relative; }
+.step-circle {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--card2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--dim);
+  transition: all .3s; position: relative; z-index: 1;
+}
+.step-label { font-size: 10px; color: var(--dim); text-align: center; }
+.step.active .step-circle { border-color: var(--accent); color: var(--accent); background: rgba(0,198,255,.1); }
+.step.done .step-circle   { border-color: var(--green); color: var(--green); background: rgba(0,230,118,.1); }
+.step.active .step-label, .step.done .step-label { color: var(--text); }
+.step-line { position: absolute; top: 14px; left: calc(50% + 14px); right: calc(-50% + 14px); height: 2px; background: var(--border); z-index: 0; transition: background .3s; }
+.step.done .step-line { background: var(--green); }
+
+/* card */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 18px; padding: 20px; margin-bottom: 14px;
+  position: relative; overflow: hidden;
+}
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,198,255,.35), transparent);
+}
+.card-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; margin-bottom: 14px; }
+
+/* presets */
+.preset-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+.preset-btn {
+  padding: 6px 14px; border-radius: 100px; font-size: 13px; cursor: pointer;
+  background: var(--card2); border: 1px solid var(--border); color: var(--dim);
+  transition: all .2s; font-family: 'Noto Sans TC', sans-serif;
+}
+.preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,198,255,.1); }
+
+/* url row */
+.url-row { display: flex; gap: 8px; margin-top: 12px; }
+.url-row input {
+  flex: 1; background: var(--card2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; color: var(--text);
+  font-size: 13px; outline: none; transition: border-color .2s; font-family: inherit;
+}
+.url-row input:focus { border-color: var(--accent); }
+.url-row input::placeholder { color: var(--dim); }
+.btn-paste { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--accent); cursor: pointer; font-size: 16px; }
+
+/* buttons */
+.btn-fetch {
+  width: 100%; padding: 14px; border-radius: 14px; border: none;
+  background: linear-gradient(135deg, #00c6ff, #7c5af5);
+  color: #fff; font-family: inherit; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all .2s; margin-top: 4px;
+  box-shadow: 0 4px 20px rgba(0,198,255,.2);
+}
+.btn-fetch:hover { transform: translateY(-1px); }
+.btn-fetch:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* loading */
+.loading-box { display: flex; align-items: center; gap: 12px; background: var(--card2); border-radius: 12px; padding: 16px; font-size: 13px; color: var(--dim); }
+.spinner { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* error */
+.error-box { background: rgba(255,82,82,.08); border: 1px solid rgba(255,82,82,.25); border-radius: 12px; padding: 16px; margin-top: 4px; }
+.error-box .err-title { font-size: 14px; font-weight: 700; color: var(--red); margin-bottom: 8px; }
+.error-box .err-detail { font-size: 12px; color: var(--dim); line-height: 1.8; }
+.err-hint { display: flex; align-items: flex-start; gap: 6px; margin-top: 4px; }
+.err-hint::before { content: '›'; color: var(--accent); flex-shrink: 0; }
+
+/* clinic list */
+.result-meta { font-size: 12px; color: var(--dim); margin-bottom: 10px; }
+.result-meta strong { color: var(--text); }
+.search-bar { display: flex; align-items: center; gap: 8px; background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; margin-bottom: 12px; }
+.search-bar input { flex: 1; background: none; border: none; color: var(--text); font-size: 14px; outline: none; font-family: inherit; }
+.search-bar input::placeholder { color: var(--dim); }
+.dept-section { margin-bottom: 10px; }
+.dept-title { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .1em; padding: 6px 2px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.clinic-card { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 8px; cursor: pointer; transition: all .2s; position: relative; }
+.clinic-card:active { transform: scale(.98); }
+.clinic-card.selected { border-color: var(--accent); background: rgba(0,198,255,.07); }
+.clinic-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.clinic-name { font-size: 15px; font-weight: 700; }
+.clinic-num { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--green); text-shadow: 0 0 10px rgba(0,230,118,.4); }
+.clinic-num.unknown { color: var(--dim); font-size: 16px; }
+.clinic-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.clinic-tag { font-size: 11px; color: var(--dim); background: rgba(255,255,255,.04); border-radius: 6px; padding: 2px 8px; }
+.clinic-tag.doctor { color: var(--yellow); }
+.sel-check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); display: none; align-items: center; justify-content: center; font-size: 11px; color: #000; font-weight: 700; }
+.clinic-card.selected .sel-check { display: flex; }
+.no-result { text-align: center; color: var(--dim); padding: 24px; font-size: 13px; }
+
+/* step 3 */
+.sel-summary { background: rgba(0,198,255,.07); border: 1px solid rgba(0,198,255,.2); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.sel-info strong { color: var(--accent); display: block; font-size: 14px; font-weight: 700; }
+.sel-info span { color: var(--dim); font-size: 12px; }
+.sel-num { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; color: var(--green); }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; }
+.field input, .field select { width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 15px; outline: none; transition: border-color .2s; -webkit-appearance: none; font-family: inherit; }
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.num-big { font-family: 'JetBrains Mono', monospace !important; font-size: 28px !important; font-weight: 700 !important; text-align: center; }
+.row2 { display: flex; gap: 10px; }
+.row2 .field { flex: 1; }
+.btn-start { width: 100%; padding: 15px; border-radius: 14px; border: none; background: linear-gradient(135deg, #00c6ff, #7c5af5); color: #fff; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; transition: all .2s; box-shadow: 0 4px 20px rgba(0,198,255,.25); }
+.btn-start:hover { transform: translateY(-1px); }
+.btn-start:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-back { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: none; color: var(--dim); font-family: inherit; font-size: 14px; cursor: pointer; margin-top: 8px; transition: all .2s; }
+.btn-back:hover { border-color: var(--accent); color: var(--accent); }
+
+/* live */
+.numbers-row { display: flex; gap: 10px; margin-bottom: 14px; }
+.num-box { flex: 1; background: var(--card2); border-radius: 14px; border: 1px solid var(--border); padding: 14px 8px; text-align: center; }
+.num-box .lbl { font-size: 11px; color: var(--dim); margin-bottom: 6px; }
+.num-box .val { font-family: 'JetBrains Mono', monospace; font-size: 44px; font-weight: 700; line-height: 1; transition: all .3s; }
+.num-box.current .val { color: var(--green); text-shadow: 0 0 18px rgba(0,230,118,.45); }
+.num-box.mine    .val { color: var(--accent); text-shadow: 0 0 18px rgba(0,198,255,.45); }
+.prog-wrap { background: var(--card2); border-radius: 100px; height: 7px; overflow: hidden; margin: 8px 0; }
+.prog-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--accent), #7c5af5); box-shadow: 0 0 8px rgba(0,198,255,.4); transition: width .8s ease; width: 0%; }
+.prog-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); }
+.eta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 100px; font-size: 12px; font-weight: 500; }
+.badge-blue   { background: rgba(0,198,255,.12); border: 1px solid rgba(0,198,255,.2); color: var(--accent); }
+.badge-green  { background: rgba(0,230,118,.12); border: 1px solid rgba(0,230,118,.2); color: var(--green); }
+.badge-yellow { background: rgba(255,215,64,.12); border: 1px solid rgba(255,215,64,.2); color: var(--yellow); }
+.badge-red    { background: rgba(255,82,82,.15);  border: 1px solid rgba(255,82,82,.3);  color: var(--red); }
+.status-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); background: var(--card2); border-radius: 10px; padding: 9px 14px; margin-bottom: 14px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex-shrink: 0; }
+.dot.on  { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 1.5s infinite; }
+.dot.err { background: var(--red); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+.log-wrap { max-height: 140px; overflow-y: auto; }
+.log-item { display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.log-item:last-child { border-bottom: none; }
+.log-time { color: var(--dim); white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+.log-msg { color: var(--text); }
+.log-msg.warn  { color: var(--yellow); }
+.log-msg.alert { color: var(--red); font-weight: 700; }
+.btn-stop { width: 100%; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(135deg, #ff5252, #ff7043); color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+
+/* alert */
+.alert-overlay { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.8); backdrop-filter: blur(4px); justify-content: center; align-items: center; padding: 20px; }
+.alert-overlay.show { display: flex; }
+.alert-box { background: var(--card); border: 2px solid var(--red); border-radius: 20px; padding: 32px 24px; text-align: center; max-width: 340px; width: 100%; animation: popIn .3s cubic-bezier(.175,.885,.32,1.275); }
+@keyframes popIn { from{transform:scale(.85);opacity:0} to{transform:scale(1);opacity:1} }
+.alert-icon { font-size: 52px; display: block; margin-bottom: 12px; animation: shake .4s infinite; }
+@keyframes shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-10deg)} 75%{transform:rotate(10deg)} }
+.alert-box h2 { font-size: 18px; font-weight: 900; color: var(--red); margin-bottom: 8px; }
+.alert-box p  { font-size: 14px; color: var(--dim); line-height: 1.6; }
+.btn-dismiss { margin-top: 20px; padding: 12px 32px; border-radius: 12px; border: none; background: var(--red); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+/* notif */
+.notif-hint { display: flex; align-items: center; gap: 8px; background: rgba(255,215,64,.08); border: 1px solid rgba(255,215,64,.2); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--yellow); margin-bottom: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <span class="hdr-icon">🏥</span>
+    <h1>804 桃園國軍總醫院</h1>
+    <p>即時看診進度監控，快輪到時自動提醒你</p>
+  </div>
+
+  <div class="notif-hint" id="notifHint" onclick="requestNotifPermission()" style="display:none">
+    🔔 點此開啟通知權限，才能在背景收到提醒
+  </div>
+  <div class="notif-hint" id="pwaHint" onclick="installPWA()" style="display:none;background:rgba(0,230,118,.08);border-color:rgba(0,230,118,.2);color:#00e676">
+    📲 點此安裝到手機桌面，鎖屏也能收到提醒
+  </div>
+
+  <!-- 步驟指示器 -->
+  <div class="steps" id="stepIndicator">
+    <div class="step active" id="step1El">
+      <div class="step-circle">1</div>
+      <div class="step-label">選醫院</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step" id="step2El">
+      <div class="step-circle">2</div>
+      <div class="step-label">選診間</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step" id="step3El">
+      <div class="step-circle">3</div>
+      <div class="step-label">填號碼</div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="step1">
+    <div class="card">
+      <div class="card-label">選擇醫院</div>
+      <div class="preset-grid" id="presetButtons"></div>
+      <div class="url-row">
+        <input type="url" id="targetUrl" placeholder="或貼上醫院即時看診網址…" oninput="clearPreset()">
+        <button class="btn-paste" onclick="pasteUrl()">📋</button>
+      </div>
+    </div>
+    <button class="btn-fetch" id="fetchBtn" onclick="fetchClinics()">🔍 查詢即時診間資訊</button>
+    <div id="fetchStatus" style="margin-top:12px"></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" style="display:none">
+    <div class="card" style="padding-bottom:8px">
+      <div class="card-label">選擇你的診間</div>
+      <div class="result-meta" id="resultMeta"></div>
+      <div class="search-bar">
+        <span style="color:var(--dim)">🔍</span>
+        <input type="text" id="clinicSearch" placeholder="搜尋科別或醫生姓名…" oninput="filterClinics()">
+      </div>
+      <div id="clinicList"></div>
+    </div>
+    <button class="btn-back" onclick="goStep(1)">← 重新選擇醫院</button>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step3" style="display:none">
+    <div class="sel-summary" id="selSummary"></div>
+    <div class="card">
+      <div class="card-label">填寫掛號資訊</div>
+      <div class="field">
+        <label>我的掛號號碼</label>
+        <input type="number" id="myNumber" class="num-big" placeholder="例如 117" min="1" max="999">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>提前幾號提醒</label>
+          <input type="number" id="alertBefore" value="5" min="1" max="30">
+        </div>
+        <div class="field">
+          <label>輪詢間隔</label>
+          <select id="intervalSec">
+            <option value="30">30 秒</option>
+            <option value="60" selected>60 秒</option>
+            <option value="120">2 分鐘</option>
+            <option value="180">3 分鐘</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <button class="btn-start" onclick="startTracking()">🚀 開始監控</button>
+    <button class="btn-back" onclick="goStep(2)">← 重新選擇診間</button>
+  </div>
+
+  <!-- 監控中 -->
+  <div id="liveSection" style="display:none">
+    <div class="card">
+      <div class="card-label" id="liveLabel">即時看診進度</div>
+      <div class="numbers-row">
+        <div class="num-box current">
+          <div class="lbl">目前號碼</div>
+          <div class="val" id="displayCurrent">—</div>
+        </div>
+        <div class="num-box mine">
+          <div class="lbl">我的號碼</div>
+          <div class="val" id="displayMine">—</div>
+        </div>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-meta">
+        <span id="progLeft">剩餘 — 號</span>
+        <span id="progPct">0%</span>
+      </div>
+      <div class="eta-row">
+        <span class="badge badge-blue" id="etaBadge">⏱ 計算中...</span>
+        <span class="badge badge-green" id="speedBadge" style="display:none"></span>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="dot on" id="statusDot"></div>
+      <span id="statusText">監控中...</span>
+    </div>
+    <div class="card">
+      <div class="card-label">更新紀錄</div>
+      <div class="log-wrap" id="logList"></div>
+    </div>
+    <button class="btn-stop" onclick="stopTracking()">⏹ 停止監控</button>
+  </div>
+
+</div>
+
+<!-- Alert -->
+<div class="alert-overlay" id="alertOverlay">
+  <div class="alert-box">
+    <span class="alert-icon" id="alertIcon">🚨</span>
+    <h2 id="alertTitle"></h2>
+    <p id="alertBody"></p>
+    <button class="btn-dismiss" onclick="dismissAlert()">知道了，前往診間</button>
+  </div>
+</div>
+
+<script>
+// ══ 醫院清單 ══
+const HOSPITALS = [
+  {
+    name:"804 桃園國軍總醫院",
+    url:"https://www.aftygh.gov.tw/opd/",
+    directApi: "https://aftygh-proxy.owen163.workers.dev/",
+    directParser: "aftygh",
+  },
+];
+
+// ══ 狀態 ══
+let allClinics = [], selectedClinic = null;
+let monitorTimer = null, numberHistory = [];
+let monitorState = {};
+let selectedHospital = null;
+
+// ══ 初始化 ══
+window.onload = () => {
+  HOSPITALS.forEach((h, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.textContent = h.name;
+    btn.onclick = () => {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('targetUrl').value = h.url;
+      selectedHospital = h;
+    };
+    document.getElementById('presetButtons').appendChild(btn);
+  });
+  checkNotifPermission();
+};
+
+function clearPreset() {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  selectedHospital = null;
+}
+
+async function pasteUrl() {
+  try { document.getElementById('targetUrl').value = await navigator.clipboard.readText(); clearPreset(); }
+  catch { alert('請手動貼上網址'); }
+}
+
+// ══ 步驟 ══
+function goStep(n) {
+  [1,2,3].forEach(i => document.getElementById(`step${i}`).style.display = i===n?'block':'none');
+  document.getElementById('liveSection').style.display = 'none';
+  document.getElementById('stepIndicator').style.display = 'flex';
+  [1,2,3].forEach(i => {
+    const el = document.getElementById(`step${i}El`);
+    el.className = 'step' + (i<n?' done':i===n?' active':'');
+  });
+}
+
+// ══ 國軍桃園 opdservice.php 解析器 ══
+// 回傳格式：HTML input 表單，欄位命名規律：
+// clinname{i}=診間名, drname{i}=醫生, oncallnum{i}=目前號碼,
+// nowroomnum{i}=診間編號, divnname{i}=科別, totalidx=總數
+function parseAftygh(text) {
+  const clinics = [];
+
+  // 取得總診間數
+  const totalMatch = text.match(/id="totalidx"[^>]*value="(\d+)"/);
+  const total = totalMatch ? parseInt(totalMatch[1]) : 30;
+
+  for (let i = 0; i < total; i++) {
+    const get = (field) => {
+      const m = text.match(new RegExp(`id="${field}${i}"[^>]*value="([^"]*)"`));
+      return m ? m[1].trim() : '';
+    };
+
+    const clinname  = get('clinname');   // 診間名稱（如「家醫科」「骨科一診」）
+    const drname    = get('drname');     // 醫生姓名
+    const oncallnum = get('oncallnum');  // 目前叫號號碼
+    const roomnum   = get('nowroomnum');// 診間編號（如 0101）
+    const divnname  = get('divnname');  // 科別大分類
+    const timetype  = get('timetype');  // 1=門診, 4=領藥
+
+    if (!clinname) continue;
+
+    const current = parseInt(oncallnum);
+    clinics.push({
+      dept:    divnname || clinname,
+      clinic:  roomnum ? `${clinname}（${roomnum}）` : clinname,
+      doctor:  drname || '—',
+      current: (!isNaN(current) && current > 0) ? current : null,
+      timetype: timetype,
+    });
+  }
+
+  return clinics;
+}
+
+// ══ STEP 1：爬診間 ══
+async function fetchClinics() {
+  const url = document.getElementById('targetUrl').value.trim();
+  if (!url) { showErr('請先選擇醫院或輸入看診進度網址','',[]); return; }
+
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true; btn.textContent = '查詢中…';
+  showLoading('正在連接醫院系統…');
+
+  // ── 檢查是否有直接 API（從使用者瀏覽器直接抓，繞過伺服器 IP 封鎖）──
+  const hosp = HOSPITALS.find(h => url.includes(new URL(h.url).hostname));
+  if (hosp?.directApi) {
+    try {
+      showLoading(`直接連接 ${hosp.name} 資料服務…`);
+      const resp = await fetch(hosp.directApi, { signal: AbortSignal.timeout(10000) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      let clinics = [];
+      if (hosp.directParser === 'aftygh') clinics = parseAftygh(text);
+      if (clinics.length === 0) throw new Error('parse_failed');
+      allClinics = clinics;
+      document.getElementById('fetchStatus').innerHTML = '';
+      renderResultMeta(clinics.length);
+      renderClinics(clinics);
+      goStep(2);
+      return;
+    } catch(err) {
+      if (err.message === 'parse_failed') {
+        showErr('解析失敗', '成功取得資料但無法解析診間內容', ['請回報給開發者']);
+      } else if (err.name === 'TimeoutError') {
+        showErr('連線逾時', '醫院 API 回應過慢', ['請稍後再試']);
+      } else {
+        // 直接 API 失敗時，fallback 到後端
+        showLoading('直接連線失敗，改用後端伺服器…');
+      }
+      btn.disabled = false; btn.textContent = '🔍 查詢即時診間資訊';
+      return;
+    } finally {
+      btn.disabled = false; btn.textContent = '🔍 查詢即時診間資訊';
+    }
+  }
+
+  try {
+    const resp = await fetch(
+      `/api/scrape?url=${encodeURIComponent(url)}`,
+      { signal: AbortSignal.timeout(18000) }
+    );
+
+    const json = await resp.json();
+
+    // 後端回傳明確的錯誤訊息
+    if (!json.ok) {
+      const errMap = {
+        TIMEOUT:      { title:'連線逾時', detail: json.message, hints:[json.hint] },
+        FORBIDDEN:    { title:'存取被拒絕（403）', detail: json.message, hints:[json.hint,'此醫院網站限制外部存取，目前無法支援'] },
+        NOT_FOUND:    { title:'頁面不存在（404）', detail: json.message, hints:[json.hint] },
+        DNS_ERROR:    { title:'找不到此網域', detail: json.message, hints:[json.hint] },
+        CONN_REFUSED: { title:'連線被拒絕', detail: json.message, hints:[json.hint] },
+        EMPTY_RESPONSE:{ title:'頁面內容為空', detail: json.message, hints:[json.hint] },
+        PARSE_FAILED: { title:'解析失敗', detail: json.message, hints:[json.hint,'可嘗試回報此醫院給開發者以新增支援'] },
+        NETWORK_ERROR:{ title:'網路錯誤', detail: json.message, hints:[json.hint] },
+      };
+      const e = errMap[json.error] || { title:'錯誤', detail: json.message, hints:[] };
+      showErr(e.title, e.detail, e.hints);
+      return;
+    }
+
+    allClinics = json.clinics;
+    document.getElementById('fetchStatus').innerHTML = '';
+    renderResultMeta(json.clinics.length);
+    renderClinics(json.clinics);
+    goStep(2);
+
+  } catch(err) {
+    if (err.name === 'TimeoutError') {
+      showErr('查詢逾時', '後端服務回應過慢（超過 18 秒）', ['請稍後再試']);
+    } else {
+      showErr('無法連線', err.message || String(err), ['請確認網路連線是否正常']);
+    }
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 查詢即時診間資訊';
+  }
+}
+
+function showLoading(msg) {
+  document.getElementById('fetchStatus').innerHTML =
+    `<div class="loading-box"><div class="spinner"></div><span>${msg}</span></div>`;
+}
+
+function showErr(title, detail, hints) {
+  const hHtml = hints.map(h => `<div class="err-hint">${h}</div>`).join('');
+  document.getElementById('fetchStatus').innerHTML = `
+    <div class="error-box">
+      <div class="err-title">❌ ${title}</div>
+      <div class="err-detail">${detail ? detail+'<br><br>' : ''}${hHtml}</div>
+    </div>`;
+}
+
+// ══ 解析器 ══
+function parseClinics(html, url) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const hosp = HOSPITALS.find(h => { try { return url.includes(new URL(h.url).hostname); } catch { return false; } });
+
+  let results = hosp ? parseByRules(doc, hosp.rules) : [];
+  if (results.length === 0) results = parseHeuristic(doc);
+  return results;
+}
+
+function parseByRules(doc, rules) {
+  const results = [];
+  doc.querySelectorAll(rules.row).forEach(row => {
+    if (!row.querySelector('td')) return;
+    const dept   = pick(row, rules.dept);
+    const clinic = pick(row, rules.clinic);
+    const doctor = pick(row, rules.doctor);
+    const curr   = extractNum(pick(row, rules.current));
+    if (!dept && !clinic) return;
+    const HEADERS = ['科別','科室','診別','診間','醫師','醫生','部門','Dept','Doctor','Room'];
+    if (HEADERS.includes(dept) || HEADERS.includes(clinic)) return;
+    results.push({ dept: dept||'—', clinic: clinic||'—', doctor: doctor||'—', current: curr });
+  });
+  return results;
+}
+
+function parseHeuristic(doc) {
+  const tables = [...doc.querySelectorAll('table')];
+  if (!tables.length) return [];
+  const best = tables.reduce((a,b) =>
+    a.querySelectorAll('tbody tr, tr').length >= b.querySelectorAll('tbody tr, tr').length ? a : b
+  );
+  const rows = [...best.querySelectorAll('tbody tr, tr')];
+  if (rows.length < 2) return [];
+
+  const hdrs = [...(best.querySelectorAll('thead th, thead td')[0]
+    ? best.querySelectorAll('thead th, thead td')
+    : rows[0].querySelectorAll('td,th'))].map(e => e.textContent.trim());
+
+  const di = colIdx(hdrs, ['科別','科室','部門','科']);
+  const ci = colIdx(hdrs, ['診間','診室','診','Room']);
+  const oi = colIdx(hdrs, ['醫師','醫生','主治','Doctor']);
+  const ni = colIdx(hdrs, ['目前','現在','叫號','看診','Now','號碼','Current']);
+
+  const results = [];
+  rows.forEach((row, ri) => {
+    if (ri === 0 && di >= 0) return;
+    const tds = [...row.querySelectorAll('td')];
+    if (tds.length < 2) return;
+    const dept   = tds[di>=0?di:0]?.textContent.trim() || '—';
+    const clinic = tds[ci>=0?ci:1]?.textContent.trim() || '—';
+    const doctor = tds[oi>=0?oi:2]?.textContent.trim() || '—';
+    const curr   = extractNum(tds[ni>=0?ni:tds.length-1]?.textContent.trim() || '');
+    const HEADERS = ['科別','科室','診別','診間','醫師','醫生'];
+    if (HEADERS.includes(dept)) return;
+    results.push({ dept, clinic, doctor, current: curr });
+  });
+  return results;
+}
+
+function pick(el, selector) {
+  for (const s of selector.split(',').map(s=>s.trim())) {
+    try { const r = el.querySelector(s); if (r) return r.textContent.trim(); } catch {}
+  }
+  return '';
+}
+
+function extractNum(t) {
+  if (!t) return null;
+  const m = t.match(/\d+/);
+  if (!m) return null;
+  const n = parseInt(m[0]);
+  return n>0 && n<1000 ? n : null;
+}
+
+function colIdx(hdrs, keys) {
+  return hdrs.findIndex(h => keys.some(k => h.includes(k)));
+}
+
+// ══ STEP 2：顯示診間 ══
+function renderResultMeta(total) {
+  document.getElementById('resultMeta').innerHTML =
+    `共找到 <strong>${total}</strong> 個診間，請點選你要看診的診間`;
+}
+
+function renderClinics(list) {
+  const container = document.getElementById('clinicList');
+  container.innerHTML = '';
+  if (!list.length) {
+    container.innerHTML = '<div class="no-result">找不到符合的診間</div>';
+    return;
+  }
+  const groups = {};
+  list.forEach(c => { (groups[c.dept] = groups[c.dept]||[]).push(c); });
+
+  Object.entries(groups).forEach(([dept, items]) => {
+    const sec = document.createElement('div');
+    sec.className = 'dept-section';
+    sec.innerHTML = `<div class="dept-title">🏷 ${dept}</div>`;
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'clinic-card' + (selectedClinic && selectedClinic.clinic===item.clinic && selectedClinic.doctor===item.doctor ? ' selected':'');
+      card.onclick = () => onSelectClinic(item, card);
+      const numClass = item.current!==null ? 'clinic-num' : 'clinic-num unknown';
+      const numText  = item.current!==null ? item.current : '未取得';
+      card.innerHTML = `
+        <div class="clinic-top">
+          <span class="clinic-name">${item.clinic}</span>
+          <span class="${numClass}">${numText}</span>
+        </div>
+        <div class="clinic-meta">
+          <span class="clinic-tag doctor">👨‍⚕️ ${item.doctor}</span>
+          <span class="clinic-tag">目前叫號</span>
+        </div>
+        <div class="sel-check">✓</div>`;
+      sec.appendChild(card);
+    });
+    container.appendChild(sec);
+  });
+}
+
+function filterClinics() {
+  const q = document.getElementById('clinicSearch').value.trim().toLowerCase();
+  const filtered = q ? allClinics.filter(c =>
+    c.dept.toLowerCase().includes(q) ||
+    c.clinic.toLowerCase().includes(q) ||
+    c.doctor.toLowerCase().includes(q)) : allClinics;
+  document.getElementById('resultMeta').innerHTML =
+    `顯示 <strong>${filtered.length}</strong> / ${allClinics.length} 個診間`;
+  renderClinics(filtered);
+}
+
+function onSelectClinic(item, card) {
+  document.querySelectorAll('.clinic-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  selectedClinic = item;
+  setTimeout(() => {
+    document.getElementById('selSummary').innerHTML = `
+      <div class="sel-info">
+        <strong>${item.clinic}</strong>
+        <span>👨‍⚕️ ${item.doctor}　🏷 ${item.dept}</span>
+      </div>
+      <div class="sel-num">${item.current!==null ? item.current : '—'}</div>`;
+    if (item.current)
+      document.getElementById('myNumber').placeholder = `目前 ${item.current}，我的號是？`;
+    goStep(3);
+  }, 200);
+}
+
+// ══ STEP 3：開始監控 ══
+function startTracking() {
+  const myNum = parseInt(document.getElementById('myNumber').value);
+  const alertBefore = parseInt(document.getElementById('alertBefore').value)||5;
+  const intervalSec = parseInt(document.getElementById('intervalSec').value)||60;
+  const url = document.getElementById('targetUrl').value.trim();
+
+  if (!myNum||myNum<1) { alert('請輸入你的掛號號碼'); return; }
+  if (selectedClinic?.current && myNum<=selectedClinic.current)
+    if (!confirm(`目前已叫到 ${selectedClinic.current} 號，你的號碼 ${myNum} 可能已過號，確定繼續？`)) return;
+
+  if (Notification.permission==='default') requestNotifPermission();
+
+  monitorState = { url, myNumber:myNum, alertBefore, intervalSec,
+    clinicName:selectedClinic.clinic, doctor:selectedClinic.doctor,
+    alertedWarn:false, alertedUrgent:false };
+  numberHistory = [];
+
+  [1,2,3].forEach(i => document.getElementById(`step${i}`).style.display='none');
+  document.getElementById('stepIndicator').style.display='none';
+  document.getElementById('liveSection').style.display='block';
+  document.getElementById('liveLabel').textContent = `${selectedClinic.clinic}　👨‍⚕️ ${selectedClinic.doctor}`;
+  document.getElementById('displayMine').textContent = myNum;
+  document.getElementById('statusText').textContent = `監控中，每 ${intervalSec} 秒更新`;
+
+  if (selectedClinic.current) {
+    numberHistory.push({ number:selectedClinic.current, ts:Date.now() });
+    updateDisplay(selectedClinic.current);
+  }
+  addLog('✅ 監控已啟動');
+
+  // 向後端訂閱背景推播
+  subscribePush({
+    url: monitorState.url,
+    clinicName: selectedClinic.clinic,
+    doctor: selectedClinic.doctor,
+    myNumber: myNum,
+    alertBefore: alertBefore,
+  });
+
+  pollOnce();
+  monitorTimer = setInterval(pollOnce, intervalSec*1000);
+}
+
+function stopTracking() {
+  clearInterval(monitorTimer); monitorTimer=null;
+  unsubscribePush();  // 取消後端背景推播
+  document.getElementById('fetchStatus').innerHTML='';
+  goStep(1);
+  document.getElementById('stepIndicator').style.display='flex';
+}
+
+// ══ 輪詢 ══
+async function pollOnce() {
+  try {
+    let clinics = [];
+
+    // 有直接 API 的醫院，從瀏覽器直接抓
+    const hosp = HOSPITALS.find(h => monitorState.url.includes(new URL(h.url).hostname));
+    if (hosp?.directApi) {
+      const resp = await fetch(hosp.directApi, { signal: AbortSignal.timeout(10000) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      if (hosp.directParser === 'aftygh') clinics = parseAftygh(text);
+    } else {
+      // 走後端
+      const resp = await fetch(
+        `/api/scrape?url=${encodeURIComponent(monitorState.url)}`,
+        { signal: AbortSignal.timeout(15000) }
+      );
+      const json = await resp.json();
+      if (!json.ok) { addLog(`⚠️ ${json.message}`,'warn'); setStatus(json.message,'err'); return; }
+      clinics = json.clinics;
+    }
+
+    const match = clinics.find(c => c.clinic===selectedClinic.clinic && c.doctor===selectedClinic.doctor)
+               || clinics.find(c => c.clinic===selectedClinic.clinic);
+
+    if (!match || match.current===null) {
+      addLog('⚠️ 本次無法取得號碼','warn');
+      setStatus('解析失敗','err'); return;
+    }
+    numberHistory.push({ number:match.current, ts:Date.now() });
+    if (numberHistory.length>30) numberHistory.shift();
+    updateDisplay(match.current);
+    checkAlert(match.current);
+    setStatus(`更新於 ${new Date().toLocaleTimeString('zh-TW')}`,'on');
+  } catch(err) {
+    const msg = err.name==='TimeoutError' ? '連線逾時' : `錯誤：${err.message}`;
+    addLog(`❌ ${msg}`,'warn');
+    setStatus(msg,'err');
+  }
+}
+
+// ══ 顯示 & 計算 ══
+function updateDisplay(current) {
+  const mine=monitorState.myNumber, rem=mine-current;
+  document.getElementById('displayCurrent').textContent=current;
+  const pct=Math.min(100,Math.max(0,(current/mine)*100));
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=Math.round(pct)+'%';
+  document.getElementById('progLeft').textContent=rem>0?`剩餘 ${rem} 號`:'快輪到了！';
+  const eta=calcETA(rem);
+  const b=document.getElementById('etaBadge');
+  b.textContent=`⏱ 預估 ${eta}`;
+  b.className='badge '+(rem<=3?'badge-red':rem<=monitorState.alertBefore?'badge-yellow':'badge-blue');
+  const spd=calcSpeed();
+  if (spd) { const sb=document.getElementById('speedBadge'); sb.style.display='inline-flex'; sb.textContent=`🚀 每號約 ${spd} 分`; }
+  if (numberHistory.length>=2) {
+    const prev=numberHistory[numberHistory.length-2].number;
+    if (current-prev>=10) addLog(`⚠️ 偵測到跳號！${prev} → ${current}`,'warn');
+  }
+  addLog(`目前 ${current} 號，剩 ${rem} 號，${eta}`, rem<=monitorState.alertBefore?'warn':'normal');
+}
+
+function calcETA(rem) {
+  const s=calcSpeed(); if (!s||rem<=0) return '計算中';
+  const m=Math.round(s*rem);
+  return m<1?'不到 1 分鐘':m>=60?`約 ${Math.floor(m/60)} 小時 ${m%60} 分`:`約 ${m} 分鐘`;
+}
+function calcSpeed() {
+  if (numberHistory.length<2) return null;
+  const f=numberHistory[0],l=numberHistory[numberHistory.length-1];
+  const nd=l.number-f.number,td=(l.ts-f.ts)/60000;
+  return nd>0?(td/nd).toFixed(1):null;
+}
+function checkAlert(current) {
+  const rem=monitorState.myNumber-current;
+  if ((rem<=0||rem<=3)&&!monitorState.alertedUrgent) {
+    monitorState.alertedUrgent=true;
+    triggerAlert('🚨','快輪到你了！',`目前 ${current} 號，你的號碼 ${monitorState.myNumber}，請立刻前往診間！`,'urgent');
+  } else if (rem<=monitorState.alertBefore&&!monitorState.alertedWarn) {
+    monitorState.alertedWarn=true;
+    triggerAlert('⏰','請準備出發',`目前 ${current} 號，還有 ${rem} 號，${calcETA(rem)}，請開始移動！`,'warn');
+  }
+}
+function triggerAlert(icon,title,body,level) {
+  document.getElementById('alertIcon').textContent=icon;
+  document.getElementById('alertTitle').textContent=title;
+  document.getElementById('alertBody').textContent=body;
+  document.getElementById('alertOverlay').classList.add('show');
+  if (Notification.permission==='granted')
+    new Notification(title,{body,vibrate:level==='urgent'?[500,200,500,200,500]:[300,100,300]});
+  playBeep(level==='urgent'?3:1);
+  addLog(`🔔 ${title}`,'alert');
+}
+function dismissAlert() { document.getElementById('alertOverlay').classList.remove('show'); }
+function playBeep(times=1) {
+  try {
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    let t=ctx.currentTime;
+    for(let i=0;i<times;i++){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(.4,t);g.gain.exponentialRampToValueAtTime(.001,t+.4);o.start(t);o.stop(t+.4);t+=.6;}
+  } catch {}
+}
+function setStatus(msg,type) {
+  document.getElementById('statusText').textContent=msg;
+  document.getElementById('statusDot').className='dot '+(type||'');
+}
+function addLog(msg,type='normal') {
+  const l=document.getElementById('logList'),d=document.createElement('div');
+  d.className='log-item';
+  const t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  d.innerHTML=`<span class="log-time">${t}</span><span class="log-msg ${type==='normal'?'':type}">${msg}</span>`;
+  l.prepend(d);
+  while(l.children.length>30)l.removeChild(l.lastChild);
+}
+function checkNotifPermission() {
+  if('Notification' in window && Notification.permission==='default')
+    document.getElementById('notifHint').style.display='flex';
+}
+async function requestNotifPermission() {
+  if(await Notification.requestPermission()==='granted')
+    document.getElementById('notifHint').style.display='none';
+}
+
+// ══ Service Worker 註冊 ══
+let swRegistration = null;
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      swRegistration = await navigator.serviceWorker.register('/sw.js');
+      console.log('SW registered');
+    } catch(err) { console.warn('SW failed:', err); }
+  });
+}
+
+// ══ PWA 安裝提示 ══
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('pwaHint').style.display = 'flex';
+});
+async function installPWA() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if (outcome === 'accepted') document.getElementById('pwaHint').style.display = 'none';
+  deferredInstallPrompt = null;
+}
+
+// ══ Web Push 訂閱 ══
+const VAPID_PUBLIC_KEY = 'BHodmLtH9A2BexIS6gMqcm_Wu2p4D4a8T-ikrE0F6cMqCEeqNW13GYK92SosX_FKrDZMTqkSAqcS6X8Syg7IzvQ';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function subscribePush(task) {
+  if (!swRegistration) { console.warn('No SW'); return null; }
+  try {
+    let sub = await swRegistration.pushManager.getSubscription();
+    if (!sub) {
+      sub = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), task }),
+    });
+    addLog('✅ 背景推播已啟用，關屏也能收到通知');
+    return sub;
+  } catch(err) {
+    console.warn('Push subscribe failed:', err);
+    addLog('⚠️ 背景推播設定失敗，將使用頁面內提醒', 'warn');
+    return null;
+  }
+}
+
+async function unsubscribePush() {
+  if (!swRegistration) return;
+  try {
+    const sub = await swRegistration.pushManager.getSubscription();
+    if (sub) {
+      await fetch('/api/subscribe', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+      await sub.unsubscribe();
+    }
+  } catch(err) { console.warn('Unsubscribe failed:', err); }
+}
+</script>
+</body>
+</html>
