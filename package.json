@@ -4,6 +4,6 @@
   "description": "804桃園國軍總醫院看診提醒系統",
   "dependencies": {
     "web-push": "^3.6.7",
-    "@vercel/kv": "^2.0.0"
+    "@upstash/redis": "^1.34.0"
   }
 }
