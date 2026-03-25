@@ -1,9 +1,0 @@
-{
-  "name": "hospital-visit-tracking",
-  "version": "1.0.0",
-  "description": "804桃園國軍總醫院看診提醒系統",
-  "dependencies": {
-    "web-push": "^3.6.7",
-    "@vercel/kv": "^2.0.0"
-  }
-}
