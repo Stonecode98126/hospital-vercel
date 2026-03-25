@@ -1,13 +1,18 @@
 /**
  * Vercel API: /api/notify
- * 由 Vercel Cron Job 每 5 分鐘自動呼叫
+ * 由 GitHub Actions 每5分鐘呼叫
  * 檢查所有訂閱用戶的號碼，快輪到時推播通知
  */
 
 const https = require('https');
 const http  = require('http');
 const webpush = require('web-push');
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 webpush.setVapidDetails(
   'mailto:admin@hospital-tracking.vercel.app',
@@ -18,42 +23,38 @@ webpush.setVapidDetails(
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
-  // 驗證是 Cron Job 呼叫（安全性）
+  // 驗證是 GitHub Actions 呼叫
   const authHeader = req.headers.authorization;
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
   try {
-    // 取得所有訂閱 key
-    const keys = await kv.smembers('subscriptions_index');
+    const keys = await redis.smembers('subscriptions_index');
     if (!keys || keys.length === 0) {
       return res.status(200).json({ ok: true, checked: 0, message: '目前沒有訂閱用戶' });
     }
 
     let checked = 0, notified = 0, errors = 0;
-
-    // 依醫院 URL 分組，同一家醫院只抓一次
     const clinicsCache = {};
 
     for (const key of keys) {
       try {
-        const record = await kv.get(key);
-        if (!record || !record.task) {
-          await kv.srem('subscriptions_index', key);
+        const raw = await redis.get(key);
+        if (!raw) {
+          await redis.srem('subscriptions_index', key);
           continue;
         }
+
+        const record = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (!record || !record.task) continue;
 
         const { subscription, task } = record;
         const url = task.url;
 
-        // 同一家醫院只抓一次
         if (!clinicsCache[url]) {
-          try {
-            clinicsCache[url] = await fetchClinics(url);
-          } catch {
-            clinicsCache[url] = null;
-          }
+          try { clinicsCache[url] = await fetchClinics(url); }
+          catch { clinicsCache[url] = null; }
         }
 
         const clinics = clinicsCache[url];
@@ -68,7 +69,6 @@ module.exports = async (req, res) => {
         const current = match.current;
         const remaining = task.myNumber - current;
         checked++;
-
         record.lastNumber = current;
 
         let shouldNotify = false, urgent = false, title = '', body = '';
@@ -99,17 +99,14 @@ module.exports = async (req, res) => {
             notified++;
           } catch (pushErr) {
             if (pushErr.statusCode === 410) {
-              // 訂閱已失效，刪除
-              await kv.del(key);
-              await kv.srem('subscriptions_index', key);
-            } else {
-              errors++;
-            }
+              await redis.del(key);
+              await redis.srem('subscriptions_index', key);
+            } else { errors++; }
           }
         }
 
-        // 更新記錄（重設 TTL）
-        await kv.set(key, record, { ex: 60 * 60 * 12 });
+        // 更新記錄，重設 TTL
+        await redis.set(key, JSON.stringify(record), { ex: 60 * 60 * 12 });
 
       } catch (err) {
         console.error(`process error for ${key}:`, err.message);
@@ -128,7 +125,6 @@ module.exports = async (req, res) => {
   }
 };
 
-// ── 抓取診間資料 ──
 async function fetchClinics(url) {
   if (url.includes('aftygh.gov.tw')) {
     const text = await fetchText('https://aftygh-proxy.owen163.workers.dev/');
