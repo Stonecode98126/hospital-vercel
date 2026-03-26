@@ -2,9 +2,12 @@ name: 看診提醒排程
 
 on:
   schedule:
-    # 每5分鐘執行一次（UTC時間，台灣時間 = UTC+8）
-    - cron: '*/5 * * * *'
-  # 也可以手動觸發，方便測試
+    # 每5分鐘，只在台灣時間週一到週六 07:00-18:00 執行
+    # UTC 時間 = 台灣時間 - 8
+    # 台灣 07:00-18:00 = UTC 23:00(前日)-10:00
+    - cron: '*/5 23-23 * * 0-5'  # UTC 23:xx (台灣 07:xx)
+    - cron: '*/5 0-9 * * 1-6'    # UTC 00:xx-09:xx (台灣 08:xx-17:xx)
+    - cron: '*/5 10 * * 1-6'     # UTC 10:xx (台灣 18:xx)
   workflow_dispatch:
 
 jobs:
@@ -15,16 +18,28 @@ jobs:
     steps:
       - name: 呼叫看診提醒 API
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
+          response=$(curl -s \
+            -w "\n%{http_code}" \
             -X GET \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "${{ secrets.VERCEL_URL }}/api/notify")
-          
-          echo "API 回應狀態碼：$response"
-          
-          if [ "$response" != "200" ]; then
-            echo "❌ API 呼叫失敗，狀態碼：$response"
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -1)
+
+          echo "狀態碼：$http_code"
+          echo "回應：$body"
+
+          checked=$(echo "$body" | grep -o '"checked":[0-9]*' | grep -o '[0-9]*' || echo "0")
+          notified=$(echo "$body" | grep -o '"notified":[0-9]*' | grep -o '[0-9]*' || echo "0")
+
+          if [ "$http_code" != "200" ]; then
+            echo "❌ API 失敗，狀態碼：$http_code"
             exit 1
           fi
-          
-          echo "✅ 看診提醒檢查完成"
+
+          if [ "$checked" = "0" ]; then
+            echo "💤 目前沒有用戶在等診"
+          else
+            echo "✅ 檢查 $checked 位用戶，推播 $notified 則通知"
+          fi
