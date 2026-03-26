@@ -30,6 +30,12 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // 快速檢查：沒有訂閱就直接回傳，不消耗資源
+    const count = await redis.scard('subscriptions_index');
+    if (!count || count === 0) {
+      return res.status(200).json({ ok: true, checked: 0, message: '目前沒有訂閱用戶' });
+    }
+
     const keys = await redis.smembers('subscriptions_index');
     if (!keys || keys.length === 0) {
       return res.status(200).json({ ok: true, checked: 0, message: '目前沒有訂閱用戶' });
