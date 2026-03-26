@@ -35,22 +35,41 @@ body {
 body::before {
   content: ''; position: fixed; inset: 0;
   background:
-    radial-gradient(ellipse 60% 40% at 15% 10%, rgba(0,198,255,.06) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 85% 90%, rgba(124,90,245,.05) 0%, transparent 70%);
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,100,255,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 15% 10%, rgba(0,198,255,.08) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 85% 90%, rgba(124,90,245,.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(0,60,180,.05) 0%, transparent 80%);
+  pointer-events: none; z-index: 0;
+}
+
+/* 底部光暈 */
+body::after {
+  content: ''; position: fixed; bottom: 0; left: 0; right: 0; height: 30vh;
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0,80,255,.08) 0%, transparent 70%);
   pointer-events: none; z-index: 0;
 }
 
 .wrap { position: relative; z-index: 1; max-width: 500px; margin: 0 auto; padding: 20px 16px 80px; }
 
 /* header */
-.hdr { text-align: center; padding: 20px 0 24px; }
-.hdr-icon { font-size: 40px; display: block; margin-bottom: 8px; }
-.hdr h1 {
-  font-size: 20px; font-weight: 900; letter-spacing: .06em;
-  background: linear-gradient(120deg, var(--accent), #7c5af5);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+.hdr { text-align: center; padding: 32px 0 28px; }
+.hdr-icon {
+  font-size: 72px; display: block; margin-bottom: 12px;
+  filter: drop-shadow(0 0 24px rgba(0,140,255,.7)) drop-shadow(0 0 48px rgba(0,100,255,.4));
+  animation: float 3s ease-in-out infinite;
 }
-.hdr p { font-size: 12px; color: var(--dim); margin-top: 4px; }
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.hdr h1 {
+  font-size: 26px; font-weight: 900; letter-spacing: .06em;
+  background: linear-gradient(120deg, #60c8ff, #a0d8ff, #fff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 0 12px rgba(0,180,255,.4));
+}
+.hdr p { font-size: 13px; color: #8ab8d4; margin-top: 6px; letter-spacing: .03em; }
 
 /* step indicator */
 .steps { display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
@@ -71,13 +90,16 @@ body::before {
 
 /* card */
 .card {
-  background: var(--card); border: 1px solid var(--border);
+  background: rgba(10,30,70,.65);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0,140,255,.25);
   border-radius: 18px; padding: 20px; margin-bottom: 14px;
   position: relative; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05);
 }
 .card::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0,198,255,.35), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0,198,255,.6), rgba(140,100,255,.4), transparent);
 }
 .card-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; margin-bottom: 14px; }
 
@@ -103,13 +125,21 @@ body::before {
 
 /* buttons */
 .btn-fetch {
-  width: 100%; padding: 14px; border-radius: 14px; border: none;
-  background: linear-gradient(135deg, #00c6ff, #7c5af5);
-  color: #fff; font-family: inherit; font-size: 15px; font-weight: 700;
-  cursor: pointer; transition: all .2s; margin-top: 4px;
-  box-shadow: 0 4px 20px rgba(0,198,255,.2);
+  width: 100%; padding: 16px; border-radius: 14px; border: none;
+  background: linear-gradient(135deg, #0080ff, #4040ff, #7c5af5);
+  color: #fff; font-family: inherit; font-size: 16px; font-weight: 700;
+  cursor: pointer; transition: all .25s; margin-top: 4px;
+  box-shadow: 0 4px 30px rgba(0,100,255,.5), 0 0 60px rgba(0,80,255,.2);
+  letter-spacing: .05em; position: relative; overflow: hidden;
 }
-.btn-fetch:hover { transform: translateY(-1px); }
+.btn-fetch::after {
+  content: ''; position: absolute; top: -50%; left: -60%; width: 40%; height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+  transform: skewX(-20deg);
+  animation: shimmer 2.5s infinite;
+}
+@keyframes shimmer { 0%{left:-60%} 100%{left:160%} }
+.btn-fetch:hover { transform: translateY(-2px); box-shadow: 0 6px 36px rgba(0,100,255,.65); }
 .btn-fetch:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
 /* loading */
@@ -207,6 +237,49 @@ body::before {
 
 /* notif */
 .notif-hint { display: flex; align-items: center; gap: 8px; background: rgba(255,215,64,.08); border: 1px solid rgba(255,215,64,.2); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--yellow); margin-bottom: 14px; cursor: pointer; }
+
+/* ── 底部資訊卡片 ── */
+.info-card {
+  background: rgba(10,30,70,.65);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0,140,255,.2);
+  border-radius: 16px; padding: 16px 18px; margin-bottom: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+.info-title {
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  letter-spacing: .05em; margin-bottom: 10px;
+}
+.info-body { font-size: 12px; color: #8ab8d4; line-height: 1.8; }
+.ios-step {
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.05);
+  font-size: 13px; color: var(--text);
+}
+.ios-step:last-of-type { border-bottom: none; }
+
+/* 合作卡片 */
+.sponsor-card { border-color: rgba(0,198,255,.25); }
+
+/* 贊助卡片 */
+.donate-card { border-color: rgba(255,107,157,.25); background: rgba(30,10,40,.65); }
+.donate-card .info-title { color: #ff6b9d; }
+.donate-box {
+  background: rgba(0,0,0,.3); border-radius: 10px;
+  padding: 12px 14px; margin-top: 10px;
+  border: 1px solid rgba(255,107,157,.15);
+}
+.donate-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.donate-row:last-of-type { border-bottom: none; }
+.donate-label { font-size: 12px; color: var(--dim); }
+.donate-value {
+  font-family: 'JetBrains Mono', monospace; font-size: 14px;
+  font-weight: 700; color: #ff9dd0; cursor: pointer;
+  transition: color .2s;
+}
+.donate-value:hover { color: #fff; }
 </style>
 </head>
 <body>
@@ -336,6 +409,61 @@ body::before {
       <div class="log-wrap" id="logList"></div>
     </div>
     <button class="btn-stop" onclick="stopTracking()">⏹ 停止監控</button>
+  </div>
+
+  <!-- ── 底部資訊區 ── -->
+  <div id="footerInfo" style="margin-top:8px">
+
+    <!-- Chrome 提示 -->
+    <div class="info-card" id="browserHint">
+      <div class="info-title">🌐 建議使用 Chrome 瀏覽器</div>
+      <div class="info-body">本服務使用 Web Push 推播通知技術，建議使用 <strong style="color:#00c6ff">Google Chrome</strong> 瀏覽器以獲得最佳體驗。<br>Safari / Firefox 部分功能可能受限。</div>
+    </div>
+
+    <!-- iPhone PWA 安裝引導 -->
+    <div class="info-card" id="iosHint" style="display:none">
+      <div class="info-title">📲 iPhone 安裝到主畫面教學</div>
+      <div class="info-body">
+        <div class="ios-step">① 點下方 Safari 工具列的 <strong style="color:#00c6ff">「分享」按鈕</strong>（方形加箭頭圖示）</div>
+        <div class="ios-step">② 選擇 <strong style="color:#00c6ff">「加入主畫面」</strong></div>
+        <div class="ios-step">③ 點右上角 <strong style="color:#00c6ff">「新增」</strong></div>
+        <div class="ios-step">④ 之後從主畫面開啟，即可接收通知提醒</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:8px">⚠️ iOS 16.4 以上才支援背景推播通知</div>
+      </div>
+    </div>
+
+    <!-- 合作資訊 -->
+    <div class="info-card sponsor-card">
+      <div class="info-title">🤝 技術支援</div>
+      <div class="info-body">
+        <div style="font-size:15px;font-weight:700;color:var(--accent);margin-bottom:4px">鑫將數位行銷</div>
+        <div style="font-size:13px;color:var(--text)">📞 合作洽詢：<a href="tel:0935526262" style="color:#00c6ff;text-decoration:none;font-weight:700">0935-52-62-62</a></div>
+      </div>
+    </div>
+
+    <!-- 贊助請求 -->
+    <div class="info-card donate-card">
+      <div class="info-title">💝 支持我們繼續免費服務</div>
+      <div class="info-body">
+        本服務完全免費提供給所有病患使用。如果這個服務幫助了你，歡迎小額贊助，讓我們能持續維護並擴展更多醫院的支援。
+        <div class="donate-box">
+          <div class="donate-row">
+            <span class="donate-label">銀行代號</span>
+            <span class="donate-value">007（第一銀行）</span>
+          </div>
+          <div class="donate-row">
+            <span class="donate-label">帳號</span>
+            <span class="donate-value" id="bankAccount" onclick="copyAccount()">283-10-022819</span>
+          </div>
+          <div style="font-size:11px;color:var(--dim);margin-top:6px;text-align:center">點擊帳號可複製</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:16px 0 8px;font-size:11px;color:var(--dim)">
+      © 2026 鑫將數位行銷　|　看診提醒服務
+    </div>
+
   </div>
 
 </div>
@@ -860,6 +988,30 @@ function addLog(msg,type='normal') {
 function checkNotifPermission() {
   if('Notification' in window && Notification.permission==='default')
     document.getElementById('notifHint').style.display='flex';
+}
+
+// ── iOS 偵測，顯示 PWA 安裝引導 ──
+function checkiOS() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isInStandaloneMode = window.navigator.standalone;
+  if (isIOS && !isInStandaloneMode) {
+    document.getElementById('iosHint').style.display = 'block';
+  }
+}
+checkiOS();
+
+// ── 複製銀行帳號 ──
+function copyAccount() {
+  const acc = '283-10-022819';
+  navigator.clipboard.writeText(acc).then(() => {
+    const el = document.getElementById('bankAccount');
+    const orig = el.textContent;
+    el.textContent = '✅ 已複製！';
+    el.style.color = '#00e676';
+    setTimeout(() => { el.textContent = orig; el.style.color = ''; }, 2000);
+  }).catch(() => {
+    alert('帳號：283-10-022819');
+  });
 }
 async function requestNotifPermission() {
   const p = await Notification.requestPermission();
