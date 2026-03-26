@@ -221,6 +221,9 @@ body::before {
   <div class="notif-hint" id="notifHint" onclick="requestNotifPermission()" style="display:none">
     🔔 點此開啟通知權限，才能在背景收到提醒
   </div>
+  <div class="notif-hint" id="soundHint" style="display:none;cursor:pointer;background:rgba(255,107,53,.08);border-color:rgba(255,107,53,.3);color:#ff7043" onclick="document.getElementById('soundHint').style.display='none'">
+    🔊 手機沒有通知聲音？請確認：1) 手機未靜音 2) 在手機「設定 → 應用程式 → Chrome → 通知」開啟聲音 3) 本網站通知未被設為靜音
+  </div>
   <div class="notif-hint" id="pwaHint" onclick="installPWA()" style="display:none;background:rgba(0,230,118,.08);border-color:rgba(0,230,118,.2);color:#00e676">
     📲 點此安裝到手機桌面，鎖屏也能收到提醒
   </div>
@@ -859,8 +862,17 @@ function checkNotifPermission() {
     document.getElementById('notifHint').style.display='flex';
 }
 async function requestNotifPermission() {
-  if(await Notification.requestPermission()==='granted')
+  const p = await Notification.requestPermission();
+  if(p === 'granted') {
     document.getElementById('notifHint').style.display='none';
+    // 顯示聲音設定提示
+    document.getElementById('soundHint').style.display='flex';
+    // 發一個測試通知
+    new Notification('✅ 通知已開啟', {
+      body: '看診快輪到時，你會收到提醒通知',
+      silent: false,
+    });
+  }
 }
 
 // ══ Service Worker 註冊 ══

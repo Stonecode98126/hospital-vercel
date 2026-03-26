@@ -36,16 +36,28 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    tag: 'queue-alert',          // 同 tag 的通知會覆蓋，不會疊加
-    renotify: true,              // 即使同 tag 也要再震動
-    requireInteraction: data.urgent,  // 緊急時通知不自動消失
-    vibrate: data.urgent ? [500, 200, 500, 200, 500] : [300, 100, 300],
-    data: { url: data.url || '/' },
+    tag: 'queue-alert',
+    renotify: true,
+    requireInteraction: data.urgent,
+    // 震動模式：緊急時連續震動
+    vibrate: data.urgent ? [500, 200, 500, 200, 500, 200, 500] : [400, 100, 400],
+    // silent: false 確保有聲音（預設值，但明確設定）
+    silent: false,
+    data: { url: data.url || '/', urgent: data.urgent },
     actions: [
-      { action: 'open', title: '前往診間' },
-      { action: 'dismiss', title: '知道了' }
+      { action: 'open', title: '✅ 前往診間' },
+      { action: 'dismiss', title: '稍後再說' }
     ]
   };
+
+  // 緊急通知：額外顯示一則獨立通知確保用戶注意到
+  if (data.urgent) {
+    await self.registration.showNotification('🚨 ' + data.title, {
+      ...options,
+      tag: 'queue-urgent-' + Date.now(),  // 不同 tag，不會覆蓋
+      requireInteraction: true,
+    });
+  }
 
   event.waitUntil(
     self.registration.showNotification(data.title, options)
