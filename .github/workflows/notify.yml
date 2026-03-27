@@ -2,12 +2,9 @@ name: 看診提醒排程
 
 on:
   schedule:
-    # 每5分鐘，只在台灣時間週一到週六 07:00-18:00 執行
-    # UTC 時間 = 台灣時間 - 8
-    # 台灣 07:00-18:00 = UTC 23:00(前日)-10:00
-    - cron: '*/5 23-23 * * 0-5'  # UTC 23:xx (台灣 07:xx)
-    - cron: '*/5 0-9 * * 1-6'    # UTC 00:xx-09:xx (台灣 08:xx-17:xx)
-    - cron: '*/5 10 * * 1-6'     # UTC 10:xx (台灣 18:xx)
+    - cron: '*/5 23-23 * * 0-5'
+    - cron: '*/5 0-9 * * 1-6'
+    - cron: '*/5 10 * * 1-6'
   workflow_dispatch:
 
 jobs:
@@ -18,7 +15,7 @@ jobs:
     steps:
       - name: 呼叫看診提醒 API
         run: |
-          response=$(curl -s \
+          response=$(curl -s -L \
             -w "\n%{http_code}" \
             -X GET \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
